@@ -108,25 +108,104 @@ export const AIAssistant: React.FC = () => {
             const isComplex = input.length > 100 || input.includes('code') || input.includes('reason');
             
             const { API_URL } = await import('../config/api');
-            const response = await fetch(`${API_URL}/api/ai/chat`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    prompt: input, 
-                    complexity: isComplex ? 'complex' : 'simple',
-                    settings: settings 
-                })
-            });
+            let aiResponseText = '';
+            let usedProvider = 'local';
 
-            const data = await response.json();
-            
-            if (data.error) throw new Error(data.error);
+            try {
+                const response = await fetch(`${API_URL}/api/ai/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        prompt: input, 
+                        complexity: isComplex ? 'complex' : 'simple',
+                        settings: settings 
+                    })
+                });
+
+                if (!response.ok) throw new Error("Backend unavailable");
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+                
+                aiResponseText = data.response;
+                usedProvider = data.provider;
+            } catch (backendError) {
+                console.warn("Backend orchestration failed, falling back to client-side direct request", backendError);
+                
+                // Client-side execution
+                const { decrypt } = await import('../services/securityService');
+                
+                const enabledProviders = Object.values(settings?.providers || {}).filter(p => p.enabled && p.apiKey);
+                const geminiProvider = enabledProviders.find(p => p.id === 'gemini');
+                const openaiProvider = enabledProviders.find(p => p.id === 'openai');
+                const deepseekProvider = enabledProviders.find(p => p.id === 'deepseek');
+                
+                let fallbackSuccessful = false;
+
+                if (geminiProvider && geminiProvider.apiKey) {
+                    try {
+                         const apiKey = await decrypt(geminiProvider.apiKey);
+                         const { GoogleGenAI } = await import('@google/genai');
+                         const ai = new GoogleGenAI({ apiKey });
+                         const res = await ai.models.generateContent({
+                             model: geminiProvider.model || "gemini-3-flash-preview",
+                             contents: input
+                         });
+                         aiResponseText = res.text || "";
+                         usedProvider = 'gemini';
+                         fallbackSuccessful = true;
+                    } catch (e) {
+                         console.error("Client fallback gemini failed", e);
+                    }
+                }
+
+                if (!fallbackSuccessful && openaiProvider && openaiProvider.apiKey) {
+                    try {
+                        const apiKey = await decrypt(openaiProvider.apiKey);
+                        const res = await fetch('https://api.openai.com/v1/chat/completions', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                            body: JSON.stringify({ model: openaiProvider.model || 'gpt-4o-mini', messages: [{role: 'user', content: input}] })
+                        });
+                        if (res.ok) {
+                            const data = await res.json();
+                            aiResponseText = data.choices[0].message.content;
+                            usedProvider = 'openai';
+                            fallbackSuccessful = true;
+                        }
+                    } catch (e) {
+                        console.error("Client fallback openai failed", e);
+                    }
+                }
+                
+                if (!fallbackSuccessful && deepseekProvider && deepseekProvider.apiKey) {
+                     try {
+                        const apiKey = await decrypt(deepseekProvider.apiKey);
+                        const res = await fetch('https://api.deepseek.com/chat/completions', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                            body: JSON.stringify({ model: deepseekProvider.model || 'deepseek-chat', messages: [{role: 'user', content: input}] })
+                        });
+                        if (res.ok) {
+                            const data = await res.json();
+                            aiResponseText = data.choices[0].message.content;
+                            usedProvider = 'deepseek';
+                            fallbackSuccessful = true;
+                        }
+                    } catch (e) {
+                        console.error("Client fallback deepseek failed", e);
+                    }
+                }
+
+                if (!fallbackSuccessful) {
+                    throw new Error("All client-side API requests failed or keys invalid.");
+                }
+            }
 
             const aiMsg: ChatMessage = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
-                content: data.response,
-                provider: data.provider,
+                content: aiResponseText,
+                provider: usedProvider as Provider,
                 timestamp: new Date().toISOString(),
                 status: 'sent'
             };

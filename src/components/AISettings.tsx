@@ -66,6 +66,34 @@ export const AISettings: React.FC = () => {
             }
         }
 
+        if (provider === 'openai') {
+            try {
+                const res = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+                    body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{role: 'user', content: 'ping'}], max_tokens: 5 })
+                });
+                return res.ok;
+            } catch (e) {
+                console.warn("OpenAI fetch failed, allowing key save:", e);
+                return true; // allow save anyway if CORS/network blocks it
+            }
+        }
+        
+        if (provider === 'deepseek') {
+            try {
+                const res = await fetch('https://api.deepseek.com/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+                    body: JSON.stringify({ model: 'deepseek-chat', messages: [{role: 'user', content: 'ping'}], max_tokens: 5 })
+                });
+                return res.ok;
+            } catch (e) {
+                console.warn("Deepseek fetch failed, allowing key save:", e);
+                return true;
+            }
+        }
+
         try {
             const { API_URL } = await import('../config/api');
             const response = await fetch(`${API_URL}/api/ai/chat`, {
@@ -77,8 +105,8 @@ export const AISettings: React.FC = () => {
                     settings: {
                         ...settings,
                         providers: {
-                            ...settings?.providers,
-                            [provider]: { ...settings?.providers[provider], apiKey: await encrypt(key), enabled: true }
+                            ...(settings?.providers || {}),
+                            [provider]: { ...(settings?.providers?.[provider] || {}), apiKey: await encrypt(key), enabled: true }
                         }
                     }
                 })

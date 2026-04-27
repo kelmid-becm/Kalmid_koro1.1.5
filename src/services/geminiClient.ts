@@ -35,7 +35,7 @@ Current Time: ${new Date().toLocaleString()}
         try {
             const response = await ai.models.generateContent({
                 model: "gemini-3-flash-preview",
-                contents: contextStr + "\n\nUser Request: " + prompt + "\n\nInstructions: You are a smart assistant. You CAN see the user's current schedule provided in the context. Answer their questions about their schedule or execute actions. Return ONLY raw JSON in this format: {\"action\": \"CREATE_EVENT\" | \"ADD_HABIT\" | \"GET_BUS_SCHEDULE\" | \"NONE\", \"data\": {\"message\": \"Your verbal response to the user\", ...}}",
+                contents: contextStr + "\n\nUser Request: " + prompt + "\n\nInstructions: You are a smart assistant. You CAN see the user's schedule (Events) and Habits. Answer questions about them or execute actions. Return ONLY raw JSON in this format: {\"action\": \"CREATE_EVENT\" | \"ADD_MULTI_EVENTS\" | \"DELETE_EVENT\" | \"UPDATE_EVENT\" | \"ADD_HABIT\" | \"TOGGLE_HABIT\" | \"DELETE_HABIT\" | \"TOGGLE_COMPLETE\" | \"GET_BUS_SCHEDULE\" | \"NONE\", \"data\": {\"message\": \"Your verbal response to the user\", \"title\": \"...\", \"date\": \"YYYY-MM-DD\", \"time\": \"HH:MM\", \"events\": [{\"title\":\"...\", \"startTime\":\"YYYY-MM-DDTHH:MM\", \"endTime\":\"YYYY-MM-DDTHH:MM\", \"priority\": \"medium\"}], \"eventId\": \"...\", \"updates\": {}, \"name\": \"...\", \"habitId\": \"...\"}}",
             });
 
             const text = response.text || "";

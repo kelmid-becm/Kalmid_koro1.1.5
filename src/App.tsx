@@ -1025,10 +1025,38 @@ const App = () => {
             await addEvent(data.title, data.date, data.time, data.time, 'medium');
           }
           break;
+        case 'ADD_MULTI_EVENTS':
+          if (data.events && Array.isArray(data.events)) {
+            for (const evt of data.events) {
+              await addEvent(evt.title, evt.startTime.split('T')[0], evt.startTime.split('T')[1]?.substring(0,5) || '00:00', evt.endTime.split('T')[0] ? evt.endTime.split('T')[1]?.substring(0,5) || '00:00' : '00:00', evt.priority || 'medium');
+            }
+          }
+          break;
+        case 'DELETE_EVENT':
+          if (data.eventId) await deleteEvent(data.eventId);
+          break;
+        case 'UPDATE_EVENT':
+          if (data.eventId && data.updates) await updateEvent(data.eventId, data.updates);
+          break;
         case 'ADD_HABIT':
           if (data.name) {
             await addHabit(data.name);
           }
+          break;
+        case 'TOGGLE_HABIT':
+          if (data.habitId) {
+             const useHabitStore = (await import('./store/useHabitStore')).useHabitStore;
+             useHabitStore.getState().toggleHabit(data.habitId);
+          }
+          break;
+        case 'DELETE_HABIT':
+          if (data.habitId) {
+             const useHabitStore = (await import('./store/useHabitStore')).useHabitStore;
+             useHabitStore.getState().deleteHabit(data.habitId);
+          }
+          break;
+        case 'TOGGLE_COMPLETE':
+          if (data.eventId) await toggleComplete(data.eventId);
           break;
         case 'GET_BUS_SCHEDULE':
           setViewMode('bus');
