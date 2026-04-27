@@ -91,7 +91,7 @@ export function useAI() {
            const { GoogleGenAI } = await import("@google/genai");
            const ai = new GoogleGenAI({ apiKey });
            const response = await ai.models.generateContent({
-               model: "gemini-3-flash-preview",
+               model: "gemini-3.1-pro-preview",
                contents: prompt
            });
            const text = response.text || "";

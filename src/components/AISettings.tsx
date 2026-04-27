@@ -55,10 +55,11 @@ export const AISettings: React.FC = () => {
             try {
                 const { GoogleGenAI } = await import('@google/genai');
                 const ai = new GoogleGenAI({ apiKey: key });
-                await ai.models.generateContent({
+                const response = await ai.models.generateContent({
                     model: "gemini-3-flash-preview",
                     contents: "ping"
                 });
+                if (!response.text) throw new Error("Invalid response");
                 return true;
             } catch (e) {
                 console.error("Gemini validation failed client-side:", e);
@@ -96,6 +97,17 @@ export const AISettings: React.FC = () => {
 
         try {
             const { API_URL } = await import('../config/api');
+            const currentSettings = settings || {
+                id: 'settings',
+                autoRouting: true,
+                providers: {
+                    gemini: { id: 'gemini', enabled: false, model: 'gemini-3-flash-preview' },
+                    openai: { id: 'openai', enabled: false, model: 'gpt-4o' },
+                    deepseek: { id: 'deepseek', enabled: false, model: 'deepseek-chat' },
+                    local: { id: 'local', enabled: false, model: 'llama3', baseUrl: 'http://localhost:11434' }
+                }
+            };
+
             const response = await fetch(`${API_URL}/api/ai/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -103,10 +115,14 @@ export const AISettings: React.FC = () => {
                     prompt: 'ping',
                     complexity: 'simple',
                     settings: {
-                        ...settings,
+                        ...currentSettings,
                         providers: {
-                            ...(settings?.providers || {}),
-                            [provider]: { ...(settings?.providers?.[provider] || {}), apiKey: await encrypt(key), enabled: true }
+                            ...(currentSettings.providers || {}),
+                            [provider]: { 
+                                ...(currentSettings.providers[provider] as any), 
+                                apiKey: await encrypt(key), 
+                                enabled: true 
+                            }
                         }
                     }
                 })

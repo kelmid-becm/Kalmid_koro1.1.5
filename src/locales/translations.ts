@@ -314,6 +314,7 @@ const _en = {
     activeStreaks: 'Active Streaks',
     consistency: 'Consistency',
     strategicAdvice: 'Strategic Advice',
+    translate: 'Translate',
     strategicQuote: '"Excellence is not an act, but a habit. Consistent small actions lead to massive exponential results."',
     calendar: 'Calendar',
     viewModeDesc: 'View mode description',
@@ -530,6 +531,7 @@ export const translations = {
     activeStreaks: 'سلسلة النجاح الحالية',
     consistency: 'الاستمرارية',
     strategicAdvice: 'نصيحة استراتيجية',
+    translate: 'ترجمة',
     strategicQuote: '"التميز ليس فعلاً، بل هو عادة. الأفعال الصغيرة المستمرة تؤدي إلى نتائج هائلة."',
     units: 'وحدات',
     distance: 'المسافة',
@@ -858,6 +860,7 @@ export const translations = {
     activeStreaks: 'Séries Actives',
     consistency: 'Constance',
     strategicAdvice: 'Conseil Stratégique',
+    translate: 'Traduire',
     strategicQuote: '"L\'excellence n\'est pas un acte, mais une habitude. Les petites actions constantes mènent à des résultats massifs."',
     units: 'Unités',
 

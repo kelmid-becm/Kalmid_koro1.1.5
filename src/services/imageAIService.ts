@@ -20,12 +20,11 @@ export const imageAIService = {
     
     const ai = await getAiClient();
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: [
-        {
-          parts: [
-            { inlineData: { data: base64Data, mimeType } },
-            { text: `System: You are an ultra-precise OCR and context analysis engine for 'Kelmid'.
+      model: "gemini-2.5-flash-image",
+      contents: {
+        parts: [
+          { inlineData: { data: base64Data, mimeType } },
+          { text: `System: You are an ultra-precise OCR and context analysis engine for 'Kelmid'.
 
 Task: Extract events from this image. It might be a messy handwritten note, a formal table, or a casual scene with time elements.
 
@@ -36,9 +35,8 @@ Strict Rules:
 4. MISSING DATA: If end time is missing, assume 1 hour duration.
 5. NO SAVING: Just return the structured data.
 6. OUTPUT: Return valid JSON array only.` }
-          ]
-        }
-      ],
+        ]
+      },
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -50,7 +48,7 @@ Strict Rules:
               startTime: { type: Type.STRING, description: "Start time normalized to HH:mm" },
               endTime: { type: Type.STRING, description: "End time normalized to HH:mm" },
               description: { type: Type.STRING, description: "Any extra info like room number or day" },
-              priority: { type: Type.STRING, enum: ["low", "medium", "high"] }
+              priority: { type: Type.STRING }
             },
             required: ["title", "startTime", "endTime"]
           }

@@ -1120,18 +1120,31 @@ const App = () => {
       const isActuallyOnline = navigator.onLine; // Real check
       
       if (isActuallyOnline && effectiveOnline && !forcedOffline && !activeQuery.startsWith('[LOCAL]')) {
-        // Preference: Call Gemini directly from frontend to comply with gemini-api skill
-        const { geminiClient } = await import('./services/geminiClient');
-        const { action, data: actionData } = await geminiClient.processCommand(activeQuery, { events, habits }, signal);
+        // RICH EXPERIENCE: Use the sophisticated geminiService with persona and multi-language support
+        const queryWithMode = activeUiRoom === 'planner' ? `[PLANNER_MODE] ${activeQuery}` : activeQuery;
+        const stream = geminiService.analyzeScheduleStream(events, queryWithMode, selectedDate, signal);
         
-        const message = actionData.message || (action !== 'NONE' ? `Executing ${action}...` : "Understood.");
+        let fullResponse = "";
+        for await (const chunk of stream) {
+          if (signal.aborted) break;
+          const text = chunk.text || "";
+          fullResponse += text;
+          
+          // Update message in real-time
+          updateChatMessage(aiMsgId, { content: fullResponse });
+        }
         
-        updateChatMessage(userMsgId, { status: 'sent' });
-        updateChatMessage(aiMsgId, { content: message, status: 'sent' });
-        setAiResponse(message);
-
-        if (action !== 'NONE') {
-          await executeAction(action, actionData);
+        if (!signal.aborted) {
+          // Process Actions and strip tags
+          const cleanedMessage = await handleAIAction(fullResponse);
+          updateChatMessage(userMsgId, { status: 'sent' });
+          updateChatMessage(aiMsgId, { content: cleanedMessage, status: 'sent' });
+          setAiResponse(cleanedMessage);
+          
+          // Trigger speaking if voice mode is on
+          if (settings.voiceMode) {
+             speechService.speak(cleanedMessage, language === 'ar' ? 'ar-SA' : language === 'fr' ? 'fr-FR' : 'en-US');
+          }
         }
       } else {
         // HYBRID FALLBACK: Offline logic
@@ -1353,7 +1366,18 @@ const App = () => {
     if (!aiResponse) return;
     setIsAiLoading(true);
     try {
-      const translated = await geminiService.translateText(aiResponse);
+      // Small intelligence: detect if it's currently Arabic to toggle to English, or vice versa
+      // If the user's language is French, we might want to prioritize that too.
+      const isArabic = /[\u0600-\u06FF]/.test(aiResponse);
+      let target: Language = 'ar';
+      
+      if (isArabic) {
+        target = language === 'fr' ? 'fr' : 'en';
+      } else {
+        target = 'ar';
+      }
+      
+      const translated = await geminiService.translateText(aiResponse, target);
       setAiResponse(translated);
     } catch (e) {
       console.error(e);
@@ -1848,7 +1872,7 @@ const App = () => {
             </motion.div>
           )}
 
-          {viewMode === ('local-assistant' as any) && (
+          {viewMode === 'local-assistant' && (
              <motion.div
                key="local-assistant"
                className="h-full flex-1"
@@ -2134,6 +2158,7 @@ const App = () => {
             chatQuery={chatQuery}
             setChatQuery={setChatQuery}
             handleAskAi={handleAskAi}
+            handleTranslate={handleTranslate}
             isAiLoading={isAiLoading}
             startListening={startListening}
             isListening={isListening}

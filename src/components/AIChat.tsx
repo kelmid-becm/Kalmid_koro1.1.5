@@ -12,6 +12,7 @@ interface AIChatProps {
   chatQuery: string;
   setChatQuery: (q: string) => void;
   handleAskAi: (q?: string) => void;
+  handleTranslate: () => void;
   isAiLoading: boolean;
   startListening: () => void;
   isListening: boolean;
@@ -27,7 +28,7 @@ interface AIChatProps {
 
 export const AIChat: React.FC<AIChatProps> = ({ 
   t, aiResponse, chatQuery, setChatQuery, 
-  handleAskAi, isAiLoading, startListening, 
+  handleAskAi, handleTranslate, isAiLoading, startListening, 
   isListening, effectiveOnline, language,
   isFullPage = false,
   voiceMode,
@@ -88,6 +89,12 @@ export const AIChat: React.FC<AIChatProps> = ({
   useEffect(() => {
     const checkStatus = async () => {
       try {
+        const localKey = await (await import('../services/apiKeyManager')).getDecryptedGeminiKey();
+        if (localKey) {
+          setApiStatus('ok');
+          return;
+        }
+
         const { API_URL } = await import('../config/api');
         const res = await fetch(`${API_URL}/api/status`);
         const data = await res.json();
@@ -259,8 +266,18 @@ export const AIChat: React.FC<AIChatProps> = ({
                   </div>
                 ) : (
                   aiResponse ? (
-                    <div className="markdown-body text-white/90 prose prose-invert prose-sm max-w-none">
-                      <ReactMarkdown>{aiResponse}</ReactMarkdown>
+                    <div className="relative group/response">
+                      <div className="markdown-body text-white/90 prose prose-invert prose-sm max-w-none">
+                        <ReactMarkdown>{aiResponse}</ReactMarkdown>
+                      </div>
+                      <div className="flex justify-end mt-4 opacity-0 group-hover/response:opacity-100 transition-opacity">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleTranslate(); }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-wider text-dim hover:text-primary hover:bg-primary/10 transition-all"
+                        >
+                          <Zap className="w-3 h-3 text-primary" /> {t.translate || 'Translate'}
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <div className="p-4 flex flex-col items-center justify-center h-full gap-5 text-center opacity-80 group">

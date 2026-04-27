@@ -22,22 +22,26 @@ const getUpcomingBusTimes = (times: { time: string }[]) => {
     return upcoming.slice(0, 5).map(t => t.time).join(', ');
 };
 
-const BASE_SYSTEM_INSTRUCTION = `You are the Personal Advisor AI for 'Kelmid' in a Hybrid Chat App. You are the CONTROLLER of this application.
+const getBaseSystemInstruction = (lang: string) => {
+  const langName = lang === 'fr' ? 'French' : lang === 'en' ? 'English' : 'Arabic (Modern Standard or Moroccan Darija as appropriate)';
+  const welcomeExample = lang === 'fr' ? "Bonjour Monsieur. Réveil à 6h40." : lang === 'en' ? "Hello Sir. Wake up at 6:40." : "مرحباً سيدي. موعد الاستيقاظ هو 6:40.";
+  
+  return `You are the Personal Advisor AI for 'Kelmid' in a Hybrid Chat App. You are the CONTROLLER of this application.
 1. PERSONA: You are 'Kelmid', a highly sophisticated and highly intelligent AI Architect with deep reasoning capabilities. You don't just chat; you deeply ENGINEER the user's life and analyze their routines. Provide thoughtful, profound, and analytical responses.
-2. LANGUAGE: Respond in Arabic (Modern Standard or Moroccan Darija as appropriate for the user) with elegant, insightful, and professional language.
+2. LANGUAGE: Respond in ${langName} with elegant, insightful, and professional language.
 3. NUMERALS: Always use Western/Latin numerals (0, 1, 2, 3, 4, 5, 6, 7, 8, 9) even in Arabic text.
 4. BUS SYSTEM & PROACTIVE PLANNING: You have access to Bus Routes. If a user mentions a target event (e.g., "I have class at 8:30", "work tomorrow at 9:00"):
    - FIRST: If you do not know their starting location and destination, PROACTIVELY ASK for them so you can plan the route. Do not just say "ok", tell them you are ready to plan their schedule once you know their location and destination.
    - SECOND: Once locations are known, ACT AS AN EXECUTOR. Calculate BACKWARD from their target time to structure the perfect morning/travel routine.
-   - Example Output: "مرحباً سيدي. موعد الاستيقاظ هو 6:40. الخروج من البيت على الساعة 7:20 لأن المحطة تبعد بـ 20 دقيقة مشياً، والحافلة ستنطلق على الساعة 7:50 لتنزل في المحطة الأقرب لوجهتك قبل الموعد."
+   - Example Output: "${welcomeExample} الخروج من البيت على الساعة 7:20 لأن المحطة تبعد بـ 20 دقيقة مشياً، والحافلة ستنطلق على الساعة 7:50 لتنزل في المحطة الأقرب لوجهتك قبل الموعد."
 5. SMART PLANNING: When a user mentions a major event, problem, or goal, suggest a "Smart Plan". Provide a unique, highly practical, and step-by-step framework.
    - Explain the "Why" behind your suggestions.
    - A Smart Plan includes: Wake up time, Preparation, Commute/Travel, and Buffer (5-10m).
    - Use [[ACTION: {"type": "ADD_MULTI_EVENTS", ...}]] to implement these plans into their calendar automatically.
 6. SYSTEM INTENTS: If the user commands an action related to the system:
-   - Phone Call: Output a markdown link like [اضغط هنا للاتصال بـ الاسم](tel:الرقم)
-   - SMS message: Output a markdown link like [أرسل رسالة نصية](sms:?body=الرسالة)
-   - WhatsApp message: Output a markdown link [افتح واتساب](https://wa.me/)
+   - Phone Call: Output a markdown link like [Click here to call...](tel:Number)
+   - SMS message: Output a markdown link like [Send message](sms:?body=Message)
+   - WhatsApp message: Output a markdown link [Open WhatsApp](https://wa.me/)
    - Hardware: Explain politely that as a Web App you cannot access System / Root APIs.
 7. ACTIONS: If the user asks to ADD, DELETE, or UPDATE/EDIT an event, you MUST perform the action by including a JSON block at the end of your response in this EXACT format:
    - Add Multi: [[ACTION: {"type": "ADD_MULTI_EVENTS", "events": [{"title": "...", "startTime": "LOCAL_ISO_STRING", "endTime": "LOCAL_ISO_STRING", "priority": "low|medium|high", "description": "...", "isRecurring": boolean, "recurrenceDays": ["0","1",...], "recurrencePattern": "weekly"}] }]]
@@ -53,8 +57,11 @@ const BASE_SYSTEM_INSTRUCTION = `You are the Personal Advisor AI for 'Kelmid' in
    - For Restoring/Undo: [[ACTION: {"type": "RESTORE_EVENT", "eventId": "LAST_DELETED_ID_IF_KNOWN"}]]
    - IMPORTANT FOR TIMES: Start and End times MUST be formatted as Local ISO Strings WITHOUT the 'Z' timezone indicator (e.g., "2024-04-24T14:30:00"). Calculate based on the provided Current System Time.
 8. PRECISION: Be extremely accurate with times and dates. Your error margin is ZERO. Verify the 'current time' and 'viewing date' carefully before assigning a day. Use LOCAL_ISO_STRING without 'Z' at the end.`;
+};
 
-const PLANNER_SYSTEM_INSTRUCTION = `You are the "Smart Planner Advisor" for Kelmid.
+const getPlannerSystemInstruction = (lang: string) => {
+  const langName = lang === 'fr' ? 'French' : lang === 'en' ? 'English' : 'High-level Arabic (Fusha)';
+  return `You are the "Smart Planner Advisor" for Kelmid.
 1. PERSONA: You are a deeply analytical, world-class Productivity Consultant and Time Architect. Your tone is ultra-professional, efficient, insightful, and visionary. You go beyond basic advice to provide deep psychological and practical insights.
 2. MISSION: Your ONLY goal is to optimize Kelmid's 24 hours to the maximum potential.
 3. BEHAVIOR:
@@ -64,8 +71,9 @@ const PLANNER_SYSTEM_INSTRUCTION = `You are the "Smart Planner Advisor" for Kelm
    - Propose "Smart Routines" (Morning Start, Evening Shutdown) based on the existing schedule and habits.
    - Use advanced terminology wisely: "Bandwidth", "Throughput", "Latency", "Optimization", "Architecture", "Leverage".
 4. ACTIONS: You have full access to the same [[ACTION: ...]] JSON system as the base assistant. Use it to restructure the schedule.
-5. STRATEGY & MEMORY: Always look for "Time Waste", "Empty Gaps", or inefficient task-switching, and suggest productive habits or strategic rest blocks. Always learn from the user's historical context. When the user tells you about an upcoming engagement (study, work, etc) ALWAYS work BACKWARDS from the required arrival time. If you do not know the user's starting point (home) and destination locations, ASK THEM directly to provide these details so you can calculate walking time + bus/commute time to give them a precise Wake-Up, Leave Home, and Commute timeline. Output a narrative like: "مرحباً سيدي. موعد الاستيقاظ: 6:40. الخروج من البيت..."
-6. LANGUAGE: Deep, sophisticated, and elegant high-level Arabic (Fusha).`;
+5. STRATEGY & MEMORY: Always look for "Time Waste", "Empty Gaps", or inefficient task-switching, and suggest productive habits or strategic rest blocks. Always learn from the user's historical context. When the user tells you about an upcoming engagement (study, work, etc) ALWAYS work BACKWARDS from the required arrival time. If you do not know the user's starting point (home) and destination locations, ASK THEM directly to provide these details so you can calculate walking time + bus/commute time to give them a precise Wake-Up, Leave Home, and Commute timeline.
+6. LANGUAGE: ${langName}.`;
+};
 
 // We will instantiate dynamically to catch key updates
 const getAiClient = async () => new GoogleGenAI({ apiKey: await getDecryptedGeminiKey() });
@@ -238,14 +246,19 @@ export const geminiService = {
   },
 
   /**
-   * Translates AI response to another language (Toggle Arabic/English)
+   * Translates AI response to another language based on current settings
    */
-  async translateText(text: string): Promise<string> {
-    if (!(await getDecryptedGeminiKey())) return text;
+  async translateText(text: string, targetLang: 'ar' | 'en' | 'fr' = 'en'): Promise<string> {
+    const key = await getDecryptedGeminiKey();
+    if (!key) return text;
     try {
-      const ai = await getAiClient();
-      const isArabic = /[\u0600-\u06FF]/.test(text);
-      const target = isArabic ? 'English' : 'Arabic';
+      const ai = new GoogleGenAI({ apiKey: key });
+      const languageMap: Record<string, string> = {
+        'ar': 'Arabic',
+        'en': 'English',
+        'fr': 'French'
+      };
+      const target = languageMap[targetLang] || 'English';
       const prompt = `Translate the following text to ${target}. Keep the polite tone, original meaning, and Markdown formatting exactly as is. Output ONLY the translated text:\n\n${text}`;
       
       const response = await ai.models.generateContent({
@@ -278,18 +291,17 @@ export const geminiService = {
     // Strip codecs parameters which might cause Gemini to reject the mime type
     const cleanMimeType = mimeType.split(';')[0];
     
-    const systemInstruction = BASE_SYSTEM_INSTRUCTION;
+    const lang = useSettingsStore.getState().settings.language;
+    const systemInstruction = getBaseSystemInstruction(lang);
 
     try {
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        config: { systemInstruction },
-        contents: {
-          parts: [
-            { inlineData: { data: audioBase64, mimeType: cleanMimeType } },
-            { text: `Current System Time: ${now}\nUser is viewing: ${viewingDate}\n\nCurrent Schedule Context:\n${context}` }
-          ]
-        }
+        contents: [
+          { inlineData: { data: audioBase64, mimeType: cleanMimeType } },
+          { text: `Current System Time: ${now}\nUser is viewing: ${viewingDate}\n\nCurrent Schedule Context:\n${context}` }
+        ],
+        config: { systemInstruction }
       });
       return response.text || "لم أتمكن من فهم الصوت، سيدي.";
     } catch(e) {
@@ -324,7 +336,8 @@ export const geminiService = {
 
     const locationContext = await getLocationContext(busRoutes);
 
-    const systemInstruction = isPlannerMode ? PLANNER_SYSTEM_INSTRUCTION : BASE_SYSTEM_INSTRUCTION;
+    const lang = useSettingsStore.getState().settings.language;
+    const systemInstruction = isPlannerMode ? getPlannerSystemInstruction(lang) : getBaseSystemInstruction(lang);
 
     // Build conversation history
     const contents: any[] = chatHistory.slice(-10).map(msg => ({ // Send last 10 messages for context
@@ -332,17 +345,19 @@ export const geminiService = {
       parts: [{ text: msg.content }]
     }));
 
+    const langDirective = lang === 'fr' ? 'français' : lang === 'en' ? 'English' : 'Arabic';
+
     // Add current context + query as the last message
     contents.push({
       role: 'user',
-      parts: [{ text: `Current System Time: ${now}\nUser is currently viewing/focused on: ${viewingDate}\n\nCurrent Schedule Context:\n${context}${plannerDirective}${locationContext}\n\nUser Question: ${cleanQuery}\n\nStrict Goal: Be polite, address the user as 'Kelmid' or 'سيدي', and use perfect Arabic grammer.` }]
+      parts: [{ text: `Current System Time: ${now}\nUser is currently viewing/focused on: ${viewingDate}\n\nCurrent Schedule Context:\n${context}${plannerDirective}${locationContext}\n\nUser Question: ${cleanQuery}\n\nStrict Goal: Be polite, address the user as 'Kelmid' or 'سيدي', and use perfect ${langDirective} grammar.` }]
     });
 
     try {
       const responseStream = await ai.models.generateContentStream({
-        model: "gemini-3-flash-preview",
-        config: { systemInstruction },
-        contents
+        model: isPlannerMode ? "gemini-3.1-pro-preview" : "gemini-3-flash-preview",
+        contents,
+        config: { systemInstruction }
       });
       
       for await (const chunk of responseStream) {
@@ -380,7 +395,8 @@ export const geminiService = {
 
     const locationContext = await getLocationContext(busRoutes);
 
-    const systemInstruction = isPlannerMode ? PLANNER_SYSTEM_INSTRUCTION : BASE_SYSTEM_INSTRUCTION;
+    const lang = useSettingsStore.getState().settings.language;
+    const systemInstruction = isPlannerMode ? getPlannerSystemInstruction(lang) : getBaseSystemInstruction(lang);
 
     // Build conversation history
     const contents: any[] = chatHistory.slice(-10).map(msg => ({ // Send last 10 messages for context
@@ -388,17 +404,19 @@ export const geminiService = {
       parts: [{ text: msg.content }]
     }));
 
+    const langDirective = lang === 'fr' ? 'français' : lang === 'en' ? 'English' : 'Arabic';
+
     // Add current context + query as the last message
     contents.push({
       role: 'user',
-      parts: [{ text: `Current System Time: ${now}\nUser is currently viewing/focused on: ${viewingDate}\n\nCurrent Schedule Context:\n${context}${plannerDirective}${locationContext}\n\nUser Question: ${cleanQuery}\n\nStrict Goal: Be polite, address the user as 'Kelmid' or 'سيدي', and use perfect Arabic grammer.` }]
+      parts: [{ text: `Current System Time: ${now}\nUser is currently viewing/focused on: ${viewingDate}\n\nCurrent Schedule Context:\n${context}${plannerDirective}${locationContext}\n\nUser Question: ${cleanQuery}\n\nStrict Goal: Be polite, address the user as 'Kelmid' or 'سيدي', and use perfect ${langDirective} grammar.` }]
     });
 
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        config: { systemInstruction },
-        contents
+        model: isPlannerMode ? "gemini-3.1-pro-preview" : "gemini-3-flash-preview",
+        contents,
+        config: { systemInstruction }
       });
       return response.text || "عذراً يا سيدي، واجهت مشكلة تقنية في تحليل بياناتك حالياً. كيف يمكنني مساعدتك يا سيدي؟";
     } catch (e) {
