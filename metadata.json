@@ -1,0 +1,12 @@
+{
+  "name": "Remix: AI Agent Platform",
+  "description": "A secure, BYOK-based Multi-AI assistant platform with intelligent routing, failover, and usage dashboard.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "screen-wake-lock",
+    "geolocation",
+    "notifications"
+  ],
+  "majorCapabilities": []
+}

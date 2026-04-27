@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Dark Background -->
+  <rect width="512" height="512" rx="112" fill="#09090b"/>
+  <!-- Glowing Blood-Red Accent around -->
+  <rect width="512" height="512" rx="112" fill="none" stroke="#ef4444" stroke-width="8" stroke-opacity="0.3"/>
+  
+  <!-- Stylized Geometric 'K' for Kelmid -->
+  <g transform="translate(120, 100) scale(2.5)" fill="#ef4444">
+    <path d="M35.0,24.0 L48.0,24.0 L48.0,52.0 L68.0,24.0 L85.0,24.0 L58.0,60.0 L85.0,94.0 L68.0,94.0 L48.0,63.0 L48.0,94.0 L35.0,94.0 Z" />
+  </g>
+</svg>

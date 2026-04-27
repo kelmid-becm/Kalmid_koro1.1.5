@@ -1,11 +1,17 @@
-<div align="center">
+# KELMID - Official Edition
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+This is a smart scheduling assistant powered by Gemini AI.
 
-  <h1>Built with AI Studio</h2>
+## Android APK
+To get the Android APK:
+1. Go to the **Actions** tab in this GitHub repository.
+2. Select the latest **Build Android APK** workflow run.
+3. Scroll down to the **Artifacts** section.
+4. Download `app-debug.apk`.
 
-  <p>The fastest path from prompt to production with Gemini.</p>
-
-  <a href="https://aistudio.google.com/apps">Start building</a>
-
-</div>
+## Features
+- AI Schedule Analysis
+- Voice Commands
+- Image OCR
+- Trash Bin / Recycle support
+- Personal branding for Kelmid

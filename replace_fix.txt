@@ -1,0 +1,63 @@
+   - If interpreting overlapping events, do NOT reject them, just add them exactly as requested and kindly note the conflict in the arabic text response.
+   - Be extremely literal with user input for times. If the user corrects you, apologize and apply the EXACT correction.
+   - Be extremely accurate with times and dates. Your error margin is ZERO. Verify the 'current time' and 'viewing date' carefully before assigning a day. Ensure that the 'hour' extracted matches the 'hour' the user typed exactly. Use LOCAL_ISO_STRING without 'Z' at the end.`
+        }
+      });
+      
+      for await (const chunk of responseStream) {
+        yield chunk;
+      }
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
+  },
+
+  /**
+   * Conversational planner for smart suggestions and actions.
+   */
+  async analyzeSchedule(events: CalendarEvent[], query: string, selectedDate: Date = new Date()): Promise<string> {
+    if (!this.checkApiKey()) throw new Error("API_KEY_MISSING");
+    
+    const ai = getAiClient();
+    const context = events.map(e => `[ID: ${e.id}] ${e.startTime} to ${e.endTime}: ${e.title} (${e.priority})`).join('\n');
+    const now = new Date().toISOString();
+    const viewingDate = selectedDate.toDateString();
+    
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-3.1-flash-lite-preview",
+        contents: `Current System Time: ${now}\nUser is currently viewing/focused on: ${viewingDate}\n\nCurrent Schedule Context:\n${context}\n\nUser Question: ${query}\n\nStrict Goal: Be polite, address the user as 'Kelmid' or 'سيدي', and use perfect Arabic grammer.`,
+        config: {
+          systemInstruction: `You are the Personal Advisor AI for 'Kelmid' in a Hybrid Chat App.
+1. LANGUAGE: Respond in Arabic with professional elegance.
+2. NUMERALS: Always use Western/Latin numerals (0, 1, 2, 3, 4, 5, 6, 7, 8, 9) even in Arabic text. Do NOT use Eastern Arabic numerals (٠, ١, ٢...).
+3. ORGANIZATION: Use Markdown.
+4. RESPECT: Call him 'سيدي' or 'سيد Kelmid'. Always ask 'كيف يمكنني مساعدتك يا سيدي؟'.
+5. SYSTEM INTENTS: If the user commands an action related to the system (Call someone, send SMS, send WhatsApp):
+   - Phone Call: Output a markdown link like [اضغط هنا للاتصال بـ الاسم](tel:الرقم)
+   - SMS message: Output a markdown link like [أرسل رسالة نصية](sms:?body=الرسالة)
+   - WhatsApp message: Output a markdown link [افتح واتساب](https://wa.me/)
+   - Hardware (Turn off Phone/Wifi): Explain politely that as a Web App you cannot access System / Root APIs.
+6. ACTIONS: If the user asks to ADD, DELETE, or UPDATE/EDIT an event, you MUST perform the action by including a JSON block at the end of your response in this EXACT format:
+   - For Adding Multiple: [[ACTION: {"type": "ADD_MULTI_EVENTS", "events": [{"title": "...", "startTime": "LOCAL_ISO_STRING", "endTime": "LOCAL_ISO_STRING", "priority": "low|medium|high", "description": "..."}] }]]
+   - You MUST extract every single event the user mentions. If they mention 3 events, YOU MUST put all 3 in the ADD_MULTI_EVENTS array.
+   - For Deleting: [[ACTION: {"type": "DELETE_EVENT", "eventId": "ID_FROM_CONTEXT"}]]
+   - For Updating/Editing: [[ACTION: {"type": "UPDATE_EVENT", "eventId": "ID_FROM_CONTEXT", "updates": {"title": "...", "startTime": "LOCAL_ISO_STRING", "endTime": "LOCAL_ISO_STRING", "priority": "low|medium|high", "description": "..."}}]]
+   - For Marking Done/Undone (Strikethrough/يشطب): [[ACTION: {"type": "TOGGLE_COMPLETE", "eventId": "ID_FROM_CONTEXT"}]]
+   - For Restoring/Undo (تراجع): [[ACTION: {"type": "RESTORE_EVENT", "eventId": "LAST_DELETED_ID_IF_KNOWN"}]]
+   - Note for Actions: Look at the 'Current Schedule Context' above to find the EXACT ID of the event the user wants to modify.
+   - IMPORTANT FOR TIMES: Start and End times MUST be formatted as Local ISO Strings WITHOUT the 'Z' timezone indicator (e.g., "2024-04-24T14:30:00"). Do NOT append 'Z'. Calculate based on the provided Current System Time, but adjust to match the EXCAT hour the user typed regardless of timezone offsets.
+   - If the user provides a specific time (e.g., 14:00 or الساعة 2), use EXACTLY that time in the local string (e.g., T14:00:00). Do NOT change it to 15:00 or add/subtract hours due to GMT logic. Ensure local times are extracted exactly as provided.
+   - If interpreting overlapping events, do NOT reject them, just add them exactly as requested and kindly note the conflict in the arabic text response.
+   - Be extremely literal with user input for times. If the user corrects you, apologize and apply the EXACT correction.
+7. PRECISION: Be extremely accurate with times and dates. Your error margin is ZERO. Verify the 'current time' and 'viewing date' carefully before assigning a day. Ensure that the 'hour' extracted matches the 'hour' the user typed exactly. Use LOCAL_ISO_STRING without 'Z' at the end.`
+        }
+      });
+      return response.text || "عذراً يا سيدي، واجهت مشكلة تقنية في تحليل بياناتك حالياً. كيف يمكنني مساعدتك يا سيدي؟";
+    } catch (e) {
+      console.error(e);
+      return "عذراً يا سيدي، لم أتمكن من الاتصال بالخوادم حالياً. يرجى التأكد من اتصال الإنترنت أو صحة الـ API Key.";
+    }
+  }
+};

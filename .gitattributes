@@ -1,0 +1,5 @@
+# Force binary for jar files
+*.jar binary
+# Ensure gradlew uses LF
+gradlew text eol=lf
+gradlew.bat text eol=crlf

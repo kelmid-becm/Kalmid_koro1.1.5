@@ -1,0 +1,23 @@
+305:                        {[5, 10, 30].map(mins => (
+307:                            key={`event-snooze-${event.id}-${mins}`}
+676:      const updatedEvents = events.map(e => 
+699:        const newEvents: CalendarEvent[] = extracted.map(item => {
+740:    const updatedEvents = events.map(e => 
+806:      const updated = events.map(evt => {
+1028:        const newEvents: CalendarEvent[] = extracted.map(item => {
+1158:      const updated = prev.map(m => m.id === userMsgId ? { ...m, status: finalStatus } : m);
+1225:            const up = prev.map(m => {
+1266:        const updated = prev.map(m => m.id === aiMsgId ? { ...m, content: finalResponse, status: 'sent' as const } : m);
+1274:      setChatHistory(prev => prev.map(m => m.id === aiMsgId ? { ...m, content: t.errorLocalModeMark.replace("{msg}", error.message), status: 'error' as const } : m));
+1697:                {filteredEvents.map((event, eventIdx) => (
+1699:                    key={`filtered-event-${event.id}-${eventIdx}`}
+1978:                      {next7DaysEvents.map((event, idx) => {
+1982:                          <tr key={`${event.id}-${idx}`} className={`border-b transition-colors hover:bg-zinc-800/5 ${idx % 2 === 0 ? 'bg-zinc-800/5' : ''}`} style={{ borderColor: 'var(--border-muted)' }}>
+2317:                        {Object.keys(translations).map((langId) => (
+2319:                            key={langId}
+2553:                    {trashEvents.map((event, idx) => (
+2554:                      <div key={`trash-${event.id}-${idx}`} className="p-4 border rounded-xl flex items-center justify-between group transition-colors" style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-muted)' }}>
+2700:                  chatHistory.map((msg, index) => (
+2701:                    <div key={`${msg.id}-full-${index}`} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+2870:                     {[5, 10, 30].map(mins => (
+2872:                         key={`alarm-snooze-${activeAlarm.id}-${mins}`}
