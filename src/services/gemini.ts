@@ -9,21 +9,7 @@ import { useSettingsStore } from "../store/useSettingsStore";
 import { useCalendarStore } from "../store/useCalendarStore";
 import { useHabitStore } from "../store/useHabitStore";
 import { useBusStore } from "../store/useBusStore";
-
-const getApiKey = () => {
-  // Priority 1: Environment variable (System provided)
-  if (typeof process !== 'undefined' && process.env && process.env.GEMINI_API_KEY) {
-    return process.env.GEMINI_API_KEY;
-  }
-  // Priority 2: User provided via UI (Fallback)
-  const fromLocal = useSettingsStore.getState().settings.geminiKey;
-  if (fromLocal) return fromLocal;
-  
-  if (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_GEMINI_API_KEY) {
-    return (import.meta as any).env.VITE_GEMINI_API_KEY;
-  }
-  return '';
-};
+import { getDecryptedGeminiKey } from "./apiKeyManager";
 
 const getUpcomingBusTimes = (times: { time: string }[]) => {
     const timeNow = new Date();
@@ -82,7 +68,7 @@ const PLANNER_SYSTEM_INSTRUCTION = `You are the "Smart Planner Advisor" for Kelm
 6. LANGUAGE: Deep, sophisticated, and elegant high-level Arabic (Fusha).`;
 
 // We will instantiate dynamically to catch key updates
-const getAiClient = () => new GoogleGenAI({ apiKey: getApiKey() });
+const getAiClient = async () => new GoogleGenAI({ apiKey: await getDecryptedGeminiKey() });
 
 const getLocation = async (): Promise<{ lat: number, lng: number } | null> => {
   return new Promise((resolve) => {
@@ -128,9 +114,9 @@ export const geminiService = {
    * Helper to check AI status by attempting a very small generation.
    */
   async pingAI(): Promise<{ status: 'ok' | 'error', message?: string }> {
-    if (!this.checkApiKey()) return { status: 'error', message: 'API_KEY_MISSING' };
+    if (!(await this.checkApiKey())) return { status: 'error', message: 'API_KEY_MISSING' };
     try {
-      const ai = getAiClient();
+      const ai = await getAiClient();
       await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: "ping"
@@ -229,17 +215,17 @@ export const geminiService = {
   /**
    * Helper to check API Key validity
    */
-  checkApiKey(): boolean {
-    return !!getApiKey();
+  async checkApiKey(): Promise<boolean> {
+    return !!(await getDecryptedGeminiKey());
   },
 
   /**
    * Generic text generation for smart suggestions
    */
   async generateText(prompt: string): Promise<string> {
-    if (!this.checkApiKey()) throw new Error("API_KEY_MISSING");
+    if (!(await this.checkApiKey())) throw new Error("API_KEY_MISSING");
     try {
-      const ai = getAiClient();
+      const ai = await getAiClient();
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: prompt
@@ -255,9 +241,9 @@ export const geminiService = {
    * Translates AI response to another language (Toggle Arabic/English)
    */
   async translateText(text: string): Promise<string> {
-    if (!getApiKey()) return text;
+    if (!(await getDecryptedGeminiKey())) return text;
     try {
-      const ai = getAiClient();
+      const ai = await getAiClient();
       const isArabic = /[\u0600-\u06FF]/.test(text);
       const target = isArabic ? 'English' : 'Arabic';
       const prompt = `Translate the following text to ${target}. Keep the polite tone, original meaning, and Markdown formatting exactly as is. Output ONLY the translated text:\n\n${text}`;
@@ -277,10 +263,10 @@ export const geminiService = {
    * Analyzes an audio base64 payload as an action.
    */
   async analyzeScheduleAudio(events: CalendarEvent[], audioBase64: string, mimeType: string, selectedDate: Date = new Date()): Promise<string> {
-    if (!this.checkApiKey()) throw new Error("API_KEY_MISSING");
+    if (!(await this.checkApiKey())) throw new Error("API_KEY_MISSING");
     
-    const ai = getAiClient();
-        const habits = useHabitStore.getState().habits;
+    const ai = await getAiClient();
+    const habits = useHabitStore.getState().habits;
     const busRoutes = useBusStore.getState().routes;
     const busContext = busRoutes.map(b => `Route ${b.name}:\n` + b.stops.map(s => `  - ${s.name}: Next: ${getUpcomingBusTimes(s.times)}`).join('\n')).join('\n\n');
     const context = events.map(e => `[ID: ${e.id}] ${e.startTime} to ${e.endTime}: ${e.title} (${e.priority})`).join('\n') + 
@@ -316,9 +302,9 @@ export const geminiService = {
    * Conversational planner for smart suggestions and actions. (Streaming version)
    */
   async *analyzeScheduleStream(events: CalendarEvent[], query: string, selectedDate: Date = new Date(), signal?: AbortSignal) {
-    if (!this.checkApiKey()) throw new Error("API_KEY_MISSING");
+    if (!(await this.checkApiKey())) throw new Error("API_KEY_MISSING");
     
-    const ai = getAiClient();
+    const ai = await getAiClient();
     const habits = useHabitStore.getState().habits;
     const busRoutes = useBusStore.getState().routes;
     const chatHistory = useSettingsStore.getState().chatHistory;
@@ -372,9 +358,9 @@ export const geminiService = {
    * Conversational planner for smart suggestions and actions.
    */
   async analyzeSchedule(events: CalendarEvent[], query: string, selectedDate: Date = new Date()): Promise<string> {
-    if (!this.checkApiKey()) throw new Error("API_KEY_MISSING");
+    if (!(await this.checkApiKey())) throw new Error("API_KEY_MISSING");
     
-    const ai = getAiClient();
+    const ai = await getAiClient();
     const habits = useHabitStore.getState().habits;
     const busRoutes = useBusStore.getState().routes;
     const chatHistory = useSettingsStore.getState().chatHistory;

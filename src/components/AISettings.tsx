@@ -51,6 +51,21 @@ export const AISettings: React.FC = () => {
     const validateKey = async (provider: Provider, key: string): Promise<boolean> => {
         if (provider === 'local') return true;
         
+        if (provider === 'gemini') {
+            try {
+                const { GoogleGenAI } = await import('@google/genai');
+                const ai = new GoogleGenAI({ apiKey: key });
+                await ai.models.generateContent({
+                    model: "gemini-3-flash-preview",
+                    contents: "ping"
+                });
+                return true;
+            } catch (e) {
+                console.error("Gemini validation failed client-side:", e);
+                return false;
+            }
+        }
+
         try {
             const { API_URL } = await import('../config/api');
             const response = await fetch(`${API_URL}/api/ai/chat`, {

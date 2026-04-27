@@ -369,7 +369,7 @@ export const AIChat: React.FC<AIChatProps> = ({
           whileHover={{ scale: 1.15, rotate: isOpen ? 90 : 5 }}
           whileTap={{ scale: 0.9 }}
           onClick={toggleOpen}
-          className={`hidden w-16 h-16 rounded-[1.5rem] items-center justify-center shadow-3xl transition-all duration-500 pointer-events-auto relative group fixed bottom-20 left-6 lg:bottom-12 lg:left-12 ${isOpen ? 'bg-[#0f111a] border border-white/10 text-primary' : 'bg-primary text-white shadow-[0_20px_40px_-10px_var(--primary-glow)] ring-4 ring-primary/10'}`}
+          className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center shadow-3xl transition-all duration-500 pointer-events-auto relative group fixed bottom-20 left-6 lg:bottom-12 lg:left-12 ${isOpen ? 'bg-[#0f111a] border border-white/10 text-primary' : 'bg-primary text-white shadow-[0_20px_40px_-10px_var(--primary-glow)] ring-4 ring-primary/10'}`}
         >
           {isOpen ? <X className="w-6 h-6" /> : <Bot className="w-7 h-7" />}
           

@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Brain, Sparkles, Send, Bot, Shield, Zap } from 'lucide-react';
 import { RobotAvatar } from './RobotAvatar';
+import ReactMarkdown from 'react-markdown';
 
 interface OfflineAdvisorProps {
   onChat: (msg: string) => void;
   isAiLoading: boolean;
+  aiResponse?: string | null;
   t: any;
   language: string;
 }
 
-export const OfflineAdvisor: React.FC<OfflineAdvisorProps> = ({ onChat, isAiLoading, t, language }) => {
+export const OfflineAdvisor: React.FC<OfflineAdvisorProps> = ({ onChat, isAiLoading, aiResponse, t, language }) => {
   const [input, setInput] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -34,42 +36,58 @@ export const OfflineAdvisor: React.FC<OfflineAdvisorProps> = ({ onChat, isAiLoad
           {t.offlineAdvisor}
         </h1>
         <p className="text-dim max-w-md mx-auto leading-relaxed">
-          {t.offlineWelcome || "I am your local intelligence engine. I work without internet using pre-defined patterns to help you manage your day."}
+          {t.offlineWelcome || "I am your local intelligence engine. I work without internet."}
         </p>
       </motion.div>
 
-      <div className="w-full max-w-lg">
+      <div className="w-full max-w-lg relative flex flex-col items-center">
         <RobotAvatar 
           isThinking={isAiLoading} 
-          isSpeaking={false}
+          isSpeaking={!!aiResponse && !isAiLoading}
           isListening={false}
           mood={isAiLoading ? 'thinking' : 'neutral'} 
         />
+        
+        <AnimatePresence>
+          {aiResponse && !isAiLoading && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              className="mt-6 p-5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 w-full backdrop-blur-md"
+            >
+              <div className="markdown-body text-sm md:text-base text-indigo-100" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                <ReactMarkdown>{aiResponse}</ReactMarkdown>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <form 
         onSubmit={handleSubmit}
-        className="w-full max-w-xl relative group"
+        className="w-full max-w-xl relative group mt-auto md:mt-0"
       >
         <div className="absolute inset-0 bg-indigo-500/10 blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity rounded-3xl" />
-        <div className="relative flex items-center bg-surface/50 backdrop-blur-xl border-2 border-muted rounded-3xl p-2 pl-6 shadow-2xl focus-within:border-indigo-500/50 transition-all">
+        <div className="relative flex items-center bg-surface/50 backdrop-blur-xl border-2 border-muted rounded-3xl p-2 px-4 shadow-2xl focus-within:border-indigo-500/50 transition-all">
           <input 
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={language === 'ar' ? 'اطلب أي شيء من المساعد المحلي...' : 'Ask the Local Assistant anything...'}
-            className="flex-1 bg-transparent py-4 focus:outline-none text-lg placeholder-dim pr-4"
+            className="flex-1 bg-transparent py-4 px-2 focus:outline-none text-lg placeholder-dim"
+            dir={language === 'ar' ? 'rtl' : 'ltr'}
           />
           <button 
             type="submit"
             disabled={!input.trim() || isAiLoading}
-            className="bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white p-4 rounded-2xl shadow-lg transition-all active:scale-95"
+            className={`p-4 rounded-2xl shadow-lg transition-all active:scale-95 ${language === 'ar' ? 'mr-2' : 'ml-2'} bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white`}
           >
-            <Send className="w-6 h-6" />
+            <Send className={`w-6 h-6 ${language === 'ar' ? 'rotate-180' : ''}`} />
           </button>
         </div>
         
-        <div className="flex justify-center gap-6 mt-8">
+        <div className="flex justify-center gap-6 mt-8 pb-4 md:pb-0">
             <div className="flex items-center gap-2 text-[10px] uppercase font-mono tracking-widest text-dim">
                 <Shield className="w-3 h-3 text-emerald-400" /> {t.privacyFirst || "Privacy First"}
             </div>

@@ -1831,6 +1831,7 @@ const App = () => {
                <OfflineAdvisor 
                  onChat={handleAskAi}
                  isAiLoading={isAiLoading}
+                 aiResponse={aiResponse}
                  t={t}
                  language={language}
                />

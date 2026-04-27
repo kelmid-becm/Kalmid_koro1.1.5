@@ -5,22 +5,9 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 import { CalendarEvent } from "../types";
-import { useSettingsStore } from "../store/useSettingsStore";
+import { getDecryptedGeminiKey } from "./apiKeyManager";
 
-// Helper to get API Key - centralized here if needed
-const getApiKey = () => {
-    const fromLocal = useSettingsStore.getState().settings.geminiKey;
-    if (fromLocal) return fromLocal;
-    if (typeof process !== 'undefined' && process.env && process.env.GEMINI_API_KEY) {
-        return process.env.GEMINI_API_KEY;
-    }
-    if (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_GEMINI_API_KEY) {
-        return (import.meta as any).env.VITE_GEMINI_API_KEY;
-    }
-    return '';
-};
-
-const getAiClient = () => new GoogleGenAI({ apiKey: getApiKey() });
+const getAiClient = async () => new GoogleGenAI({ apiKey: await getDecryptedGeminiKey() });
 
 export const imageAIService = {
   /**
@@ -28,10 +15,10 @@ export const imageAIService = {
    * returning them for user confirmation.
    */
   async extractScheduleFromImage(base64Data: string, mimeType: string): Promise<Partial<CalendarEvent>[]> {
-    const apiKey = getApiKey();
+    const apiKey = await getDecryptedGeminiKey();
     if (!apiKey) throw new Error("API_KEY_MISSING");
     
-    const ai = getAiClient();
+    const ai = await getAiClient();
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: [

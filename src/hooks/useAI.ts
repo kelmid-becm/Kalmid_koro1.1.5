@@ -4,6 +4,7 @@
  */
 
 import { useState } from 'react';
+import { getDecryptedGeminiKey } from '../services/apiKeyManager';
 
 export interface AICommand {
   action: 'add' | 'delete' | 'update' | 'query' | 'unknown';
@@ -57,8 +58,7 @@ export function useAI() {
       });
 
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || `HTTP error! status: ${res.status}`);
+        throw new Error(`HTTP error! status: ${res.status}`);
       }
 
       const data = await res.json();
@@ -83,7 +83,25 @@ export function useAI() {
         
       return JSON.parse(jsonStr) as AICommand;
     } catch (err: unknown) {
-      console.error("AI Parsing Error:", err);
+      console.warn("AI Backend Parsing Error, falling back to client-side:", err);
+      // Fallback to purely client-side parsing if backend fails (e.g. in exported APK)
+      try {
+        const apiKey = await getDecryptedGeminiKey();
+        if (apiKey) {
+           const { GoogleGenAI } = await import("@google/genai");
+           const ai = new GoogleGenAI({ apiKey });
+           const response = await ai.models.generateContent({
+               model: "gemini-3-flash-preview",
+               contents: prompt
+           });
+           const text = response.text || "";
+           const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
+           return JSON.parse(jsonStr) as AICommand;
+        }
+      } catch (clientErr) {
+         console.error("Client side fallback parsing failed:", clientErr);
+      }
+      
       setError(err instanceof Error ? err.message : 'An error occurred while communicating with the AI service.');
       return { action: 'unknown' };
     } finally {

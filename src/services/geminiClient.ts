@@ -4,37 +4,26 @@
  */
 
 import { GoogleGenAI } from "@google/genai";
-import { useSettingsStore } from "../store/useSettingsStore";
-
-// Standard client-side initialization following gemini-api skill
-const getApiKey = () => {
-  // Priority 1: Environment variable (System provided)
-  if (typeof process !== 'undefined' && process.env && process.env.GEMINI_API_KEY) {
-      return process.env.GEMINI_API_KEY;
-  }
-  // Priority 2: User provided via UI (Fallback)
-  const fromLocal = useSettingsStore.getState().settings.geminiKey;
-  if (fromLocal) return fromLocal;
-
-  return '';
-};
+import { getDecryptedGeminiKey } from "./apiKeyManager";
 
 let aiClient: GoogleGenAI | null = null;
+let lastUsedKey: string | null = null;
 
-export const getGeminiClient = () => {
-    if (!aiClient) {
-        const apiKey = getApiKey();
+export const getGeminiClient = async () => {
+    const apiKey = await getDecryptedGeminiKey();
+    if (!aiClient || apiKey !== lastUsedKey) {
         if (!apiKey) {
             console.warn("GEMINI_API_KEY is not defined in the environment.");
         }
         aiClient = new GoogleGenAI({ apiKey });
+        lastUsedKey = apiKey;
     }
     return aiClient;
 };
 
 export const geminiClient = {
     async processCommand(prompt: string, context: { events: any[], habits: any[] }, signal?: AbortSignal) {
-        const ai = getGeminiClient();
+        const ai = await getGeminiClient();
         
         const contextStr = `
 Current Context:
